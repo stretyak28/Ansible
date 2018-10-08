@@ -1,0 +1,23 @@
+---
+- vars_prompt:
+  - name: 'target_hosts'
+    prompt: "Enter target host or group"
+    private: no
+  hosts: '{{ target_hosts}}'
+  #remote_user: vmadmin
+  become: yes
+  gather_facts: False 
+
+  tasks:
+  - name: delete user
+    user: name={{ item }} state=absent remove=yes
+    with_items:
+     - reshetov
+
+  - name: passwordless sudo
+    lineinfile:
+        dest: /etc/sudoers
+        state: absent
+        regexp: "{{ item.regexp }}"
+    with_items:
+      - { regexp: '^reshetov' }

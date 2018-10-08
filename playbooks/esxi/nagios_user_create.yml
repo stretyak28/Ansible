@@ -1,0 +1,25 @@
+---
+- vars_prompt:
+  - name: 'password'
+    prompt: "Enter nagios user password"
+    private: yes
+  hosts: ESXI
+  user: root
+  gather_facts: no
+
+  tasks:
+
+  - name: create nagios user
+    raw: >
+      if [ -z "$(cat /etc/passwd |grep nagios)" ]; then
+              /usr/lib/vmware/auth/bin/adduser -s /sbin/nologin -D -H nagios -G root;
+              echo "{{ password }}" | /usr/lib/vmware/auth/bin/passwd --stdin nagios;
+              /sbin/backup.sh 0;
+              /sbin/auto-backup.sh;
+      else 
+             echo Nagios user already exits;
+      fi
+    register: result
+
+ 
+  - debug: msg={{ result.stdout }}

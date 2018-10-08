@@ -1,0 +1,20 @@
+---
+- hosts: ESXI
+  user: root
+  gather_facts: no
+
+  tasks:
+
+  - name: test
+    raw: |
+        if [ "$(tail -1 /etc/rc.local.d/local.sh)" == 'exit 0' ]
+        then
+                sed -i '$ d' /etc/rc.local.d/local.sh 
+        fi
+
+        if [ -z "$(grep '/var/log/arcconf.log' /etc/rc.local.d/local.sh)" ]; then
+                echo "/bin/kill \$(cat /var/run/crond.pid)
+                echo '30 0 * * * mv /var/log/arcconf.log /tmp/ > /dev/null 2>&1' >> /var/spool/cron/crontabs/root
+                /usr/lib/vmware/busybox/bin/busybox crond" >> /etc/rc.local.d/local.sh
+        fi
+

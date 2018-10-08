@@ -1,0 +1,15 @@
+---
+  - vars_prompt:
+     - name: 'target_hosts'
+       prompt: "Enter target host or group"
+       private: no
+    sudo: yes
+    hosts: '{{ target_hosts }}'
+    gather_facts: no
+
+    tasks:
+    - group: name={{ item }}  state=absent
+      name: create some groups
+      with_items:
+       - admingroup1
+       - admingroup2

@@ -1,0 +1,27 @@
+---
+- vars_prompt:
+  - name: 'target_hosts'
+    prompt: "Enter target host or group"
+    private: no
+  hosts: '{{ target_hosts}}'
+  become: yes
+
+  tasks:
+  - name: centos openssl
+    yum: name={{ item }} state=latest
+    when: ansible_distribution == 'CentOS'
+    with_items:
+    - openssl
+    - open-vm-tools
+
+  - name: ubuntu openssl
+    apt: name={{ item }} state=latest
+    when: ansible_distribution == 'Ubuntu'
+    with_items:
+    - openssl
+
+  - name: remove packages Centos
+    yum: name={{ item }} state=absent
+    when: ansible_distribution == 'CentOS'
+    with_items:
+    - NetworkManager

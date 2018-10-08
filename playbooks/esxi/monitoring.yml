@@ -1,0 +1,87 @@
+---
+  - user: root
+    hosts: ESXI
+
+    tasks:
+
+# Getting info about host
+
+    - name: Checking CIM driver install
+      raw: >
+        esxcli software vib list |grep arcconf
+      ignore_errors: yes
+      register: arcconf_installed
+
+
+    - name: Check raid-controller driver
+      raw: >
+        esxcli software vib list |grep aacraid |grep Adaptec_Inc
+      ignore_errors: yes
+      register: raid_driver_installed
+
+
+    - name: Check acceptence level
+      raw: >
+        esxcli software acceptance get
+      register: acceptence_level
+
+
+    - name: Check arcconf-cmd
+      raw: >
+        if [ -f /bin/arcconf-cmd ]; then echo present; else echo absent; fi
+      register: arrconf_cmd_present
+
+#set acceptence level
+
+    - name: set acceptence level
+      raw: >
+        esxcli software acceptance set --level=CommunitySupported
+      when: acceptence_level.stdout_lines[0] != 'CommunitySupported'
+
+
+#install raid driver if needed
+
+    - block:
+
+      - name: copy raid driver vib
+        local_action: command scp /etc/ansible/files/adaptect-driver-1.2.1.vib {{ ansible_env.SSH_CONNECTION.split()[-2] }}:/tmp/
+
+      - name: install raid driver vib
+        raw: >
+          esxcli software vib install -v /tmp/adaptect-driver-1.2.1.vib
+        register: raid_driver_install_result
+
+      - debug: msg={{  raid_driver_install_result.stdout_lines  }} 
+
+      when: not raid_driver_installed.stdout_lines
+
+
+#install monitoring tool
+
+    - block:
+
+      - name: copy arcconf vib
+        local_action: command scp /etc/ansible/files/arcconf.vib {{ ansible_env.SSH_CONNECTION.split()[-2] }}:/tmp/
+
+      - name: install arcconf vib
+        raw: >
+          esxcli software vib install -v /tmp/arcconf.vib
+        register: arcconf_install_result
+
+      - debug: msg={{ arcconf_install_result.stdout_lines }}
+
+      when: not arcconf_installed.stdout_lines
+
+
+#install arcconf-cmd
+
+    - block:
+
+      - name: install arcconf-cmd
+        local_action: command scp /etc/ansible/files/arcconf-cmd {{ ansible_env.SSH_CONNECTION.split()[-2] }}:/bin/
+
+      - name: set exec mode
+        raw: >
+          chmod u+x /bin/arcconf-cmd
+
+      when: arrconf_cmd_present.stdout_lines[0] == 'absent'

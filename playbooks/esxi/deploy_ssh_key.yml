@@ -1,0 +1,13 @@
+---
+  - user: root
+    hosts: ESXI 
+    gather_facts: no
+    vars:
+       key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+
+    tasks:
+    - name: add root ssh key
+      raw: >
+        echo {{ key }} > /etc/ssh/keys-root/authorized_keys
+      register: result
+

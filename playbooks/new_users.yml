@@ -1,0 +1,38 @@
+---
+  - vars_prompt:
+     - name: 'target_hosts'
+       prompt: "Enter target host or group"
+       private: no
+
+     - name: 'username'
+       prompt: "enter new user name"
+       private: no
+
+    hosts: '{{ target_hosts }}'
+    gather_facts: yes
+    become: yes
+
+    tasks:
+    - local_action: command /etc/ansible/scripts/create_pass.py
+      register: password_command
+      #run_once: true
+
+    - block: 
+      - name: create ansible user ubuntu
+        user: name={{ username }}  shell=/bin/bash password={{ password_command.stdout_lines[0] }} groups=sudo append=yes
+
+      - name: sudo group ubuntu
+        lineinfile: dest=/etc/sudoers state=present regexp='^%sudo' line='%sudo  ALL=(ALL) ALL'
+
+      when: ansible_distribution ==  "Ubuntu"
+
+    - block:
+      - name: sudo group centos
+        lineinfile: dest=/etc/sudoers state=present regexp='^%wheel' line='%wheel  ALL=(ALL) ALL'
+
+      - name: create ansible user centos 
+        user: name={{ username }}  shell=/bin/bash password={{ password_command.stdout_lines[0] }} groups=wheel append=yes
+
+      when: ansible_distribution ==  "CentOS"
+
+    - debug: msg='User - {{ username }}, {{ password_command.stdout_lines[1] }}'

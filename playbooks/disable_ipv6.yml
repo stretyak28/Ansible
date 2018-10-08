@@ -1,0 +1,22 @@
+---
+  - vars_prompt:
+     - name: 'target_hosts'
+       prompt: "Enter target host or group"
+       private: no
+    become: yes
+    hosts: '{{ target_hosts}}'
+
+    tasks:
+     - name: disable ipv6
+       sysctl: 
+           name: "net.ipv6.conf.all.disable_ipv6" 
+           value: 1
+           reload: yes 
+           ignoreerrors: yes
+
+     - name: disable ipv6
+       sysctl: 
+           name: "net.ipv6.conf.default.disable_ipv6"
+           value: 1
+           reload: yes 
+           ignoreerrors: yes

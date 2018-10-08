@@ -1,0 +1,38 @@
+# Mangment points list can be found in https://conf.dataart.com/display/SYS/SCCM+nix-client+installation+and+commands
+# Edit vars accordingly with your location MP and setup files location.
+# DONT FORGET to add slash at the end of sccm_files_folder variable!!! e.g "/install_folder_path/sccm/"
+---
+  - hosts: all
+    gather_facts: no
+    become: yes
+    vars:
+      sccm_files_folder: /etc/ansible/playbooks/playbooks/sccm/
+      managment_point: SC2012MPKIV.universe.dart.spb
+      
+    tasks:
+
+     - name: Checking if platform is i386
+       shell: uname -i | grep "i386"
+       ignore_errors: yes
+       register: isI386
+       failed_when: false
+
+     - name: Copy install files
+       block:
+         - copy:
+             src: "{{ sccm_files_folder }}" 
+             dest: /root/sccm-install/
+       rescue:
+         - debug:
+             msg: "Fallback copy method"
+         - local_action: shell scp -pr {{ sccm_files_folder }} ansible-kha@{{ ubuntuaws }}:home/ansible-kha/sccm-install
+           become: root
+
+     - name: install client for x64
+       shell: cd /root/sccm-install && chmod u+x install && echo "N" |  ./install -mp {{ managment_point }} -sitecode ART ccm-Universalx64.tar
+       when: not isI386.stdout_lines
+
+
+     - name: install client for x86
+       shell: cd /root/sccm-install && chmod u+x install && echo "N" |  ./install -mp {{ managment_point }} -sitecode ART ccm-Universalx86.tar
+       when: isI386.stdout_lines
